@@ -212,3 +212,207 @@ class ReportGenerator:
         
         doc.build(story)
         return filepath
+    
+    def generate_expenses_report_complete(self, db, start_date, end_date, filepath):
+        """Gera relatório de despesas em PDF"""
+        from src.models import Expense
+        
+        expenses = db.query(Expense).filter(
+            Expense.expense_date >= start_date,
+            Expense.expense_date <= end_date
+        ).all()
+        
+        doc = SimpleDocTemplate(filepath, pagesize=A4)
+        story = []
+        
+        # Título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=self.styles['Heading1'],
+            fontSize=20,
+            textColor=colors.HexColor('#d62728'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        
+        title = Paragraph("Relatório de Despesas", title_style)
+        story.append(title)
+        
+        # Período
+        period_text = f"Período: {start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')}"
+        period = Paragraph(period_text, self.styles['Normal'])
+        story.append(period)
+        story.append(Spacer(1, 20))
+        
+        # Tabela de despesas
+        data = [['Nº Despesa', 'Data', 'Tipo', 'Descrição', 'Valor', 'Status']]
+        
+        for expense in expenses:
+            data.append([
+                expense.expense_number,
+                expense.expense_date.strftime('%d/%m/%Y'),
+                expense.expense_type.upper(),
+                expense.description[:30],
+                f"R$ {expense.amount:.2f}",
+                'Paga ✓' if expense.paid else 'Pendente'
+            ])
+        
+        table = Table(data, colWidths=[2.5*cm, 2.5*cm, 2*cm, 4*cm, 2.5*cm, 2.5*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d62728')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(table)
+        story.append(Spacer(1, 20))
+        
+        # Total
+        total = sum(e.amount for e in expenses)
+        total_text = f"<b>Total de Despesas: R$ {total:.2f}</b>"
+        total_para = Paragraph(total_text, self.styles['Normal'])
+        story.append(total_para)
+        
+        doc.build(story)
+        return filepath
+    
+    def generate_stock_report(self, db, start_date, end_date, filepath):
+        """Gera relatório de estoque em PDF"""
+        from src.models import Product
+        
+        products = db.query(Product).all()
+        
+        doc = SimpleDocTemplate(filepath, pagesize=A4)
+        story = []
+        
+        # Título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=self.styles['Heading1'],
+            fontSize=20,
+            textColor=colors.HexColor('#ff7f0e'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        
+        title = Paragraph("Relatório de Estoque", title_style)
+        story.append(title)
+        
+        # Período
+        period_text = f"Data do Relatório: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+        period = Paragraph(period_text, self.styles['Normal'])
+        story.append(period)
+        story.append(Spacer(1, 20))
+        
+        # Tabela de estoque
+        data = [['Código', 'Produto', 'Quantidade', 'Preço Unit.', 'Valor Total', 'Status']]
+        
+        total_value = 0
+        for product in products:
+            status = 'Baixo ⚠️' if product.quantity < product.min_quantity else 'OK ✓'
+            value = product.quantity * product.sale_price
+            total_value += value
+            
+            data.append([
+                product.code,
+                product.name[:20],
+                str(product.quantity),
+                f"R$ {product.sale_price:.2f}",
+                f"R$ {value:.2f}",
+                status
+            ])
+        
+        table = Table(data, colWidths=[2*cm, 4*cm, 2*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff7f0e')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(table)
+        story.append(Spacer(1, 20))
+        
+        # Total
+        total_text = f"<b>Valor Total do Estoque: R$ {total_value:.2f}</b>"
+        total_para = Paragraph(total_text, self.styles['Normal'])
+        story.append(total_para)
+        
+        doc.build(story)
+        return filepath
+    
+    def generate_purchases_report(self, db, start_date, end_date, filepath):
+        """Gera relatório de compras em PDF"""
+        from src.models import Purchase
+        
+        purchases = db.query(Purchase).filter(
+            Purchase.purchase_date >= start_date,
+            Purchase.purchase_date <= end_date
+        ).all()
+        
+        doc = SimpleDocTemplate(filepath, pagesize=A4)
+        story = []
+        
+        # Título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=self.styles['Heading1'],
+            fontSize=20,
+            textColor=colors.HexColor('#1f77b4'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        
+        title = Paragraph("Relatório de Compras", title_style)
+        story.append(title)
+        
+        # Período
+        period_text = f"Período: {start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')}"
+        period = Paragraph(period_text, self.styles['Normal'])
+        story.append(period)
+        story.append(Spacer(1, 20))
+        
+        # Tabela de compras
+        data = [['Nº Compra', 'Data', 'Fornecedor', 'Valor', 'Itens']]
+        
+        for purchase in purchases:
+            data.append([
+                purchase.purchase_number,
+                purchase.purchase_date.strftime('%d/%m/%Y'),
+                purchase.supplier or 'N/A',
+                f"R$ {purchase.total_amount:.2f}",
+                str(len(purchase.items) if hasattr(purchase, 'items') else 0)
+            ])
+        
+        table = Table(data, colWidths=[3*cm, 2.5*cm, 4.5*cm, 3*cm, 2*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f77b4')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(table)
+        story.append(Spacer(1, 20))
+        
+        # Total
+        total = sum(p.total_amount for p in purchases)
+        total_text = f"<b>Total de Compras: R$ {total:.2f}</b>"
+        total_para = Paragraph(total_text, self.styles['Normal'])
+        story.append(total_para)
+        
+        doc.build(story)
+        return filepath

@@ -409,9 +409,12 @@ class ReportConfigDialog(ctk.CTkToplevel):
                     filepath
                 )
             elif self.report_type == 'expenses':
-                # Implementar
-                messagebox.showinfo("Info", "Relatório de despesas será implementado em breve")
-                return
+                self.report_generator.generate_expenses_report_complete(
+                    self.db,
+                    start_date,
+                    end_date,
+                    filepath
+                )
             elif self.report_type == 'financial':
                 self.report_generator.generate_financial_report(
                     self.db,
@@ -420,12 +423,26 @@ class ReportConfigDialog(ctk.CTkToplevel):
                     filepath
                 )
             elif self.report_type == 'stock':
-                # Implementar
-                messagebox.showinfo("Info", "Relatório de estoque será implementado em breve")
-                return
+                self.report_generator.generate_stock_report(
+                    self.db,
+                    start_date,
+                    end_date,
+                    filepath
+                )
+            elif self.report_type == 'purchases':
+                self.report_generator.generate_purchases_report(
+                    self.db,
+                    start_date,
+                    end_date,
+                    filepath
+                )
             else:
-                messagebox.showinfo("Info", f"Relatório de {self.get_report_name()} será implementado em breve")
-                return
+                self.report_generator.generate_sales_report(
+                    self.db,
+                    start_date,
+                    end_date,
+                    filepath
+                )
             
             messagebox.showinfo(
                 "Sucesso",
