@@ -126,3 +126,138 @@ class AuthController:
         db.commit()
         
         return True
+    
+    def create_user(self, db, username: str, password: str, full_name: str, email: str, role: str = 'operador'):
+        """Cria um novo usuário"""
+        from src.models import User
+        
+        try:
+            # Verificar se usuário já existe
+            existing_user = db.query(User).filter(User.username == username).first()
+            if existing_user:
+                return None
+            
+            # Criar novo usuário
+            new_user = User(
+                username=username,
+                password_hash=self.hash_password(password),
+                full_name=full_name,
+                email=email,
+                role=role,
+                is_active=True,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+            
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+            
+            return {
+                'id': new_user.id,
+                'username': new_user.username,
+                'full_name': new_user.full_name,
+                'email': new_user.email,
+                'role': new_user.role,
+                'is_active': new_user.is_active
+            }
+        except Exception as e:
+            print(f"Erro ao criar usuário: {e}")
+            db.rollback()
+            return None
+    
+    def update_user(self, db, user_id: int, username: str = None, full_name: str = None, 
+                    email: str = None, role: str = None, is_active: bool = None) -> bool:
+        """Atualiza dados de um usuário"""
+        from src.models import User
+        
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False
+            
+            if username:
+                # Verificar se novo username já existe
+                existing = db.query(User).filter(
+                    User.username == username,
+                    User.id != user_id
+                ).first()
+                if existing:
+                    return False
+                user.username = username
+            
+            if full_name:
+                user.full_name = full_name
+            
+            if email:
+                user.email = email
+            
+            if role:
+                user.role = role
+            
+            if is_active is not None:
+                user.is_active = is_active
+            
+            user.updated_at = datetime.now()
+            db.commit()
+            
+            return True
+        except Exception as e:
+            print(f"Erro ao atualizar usuário: {e}")
+            db.rollback()
+            return False
+    
+    def delete_user(self, db, user_id: int) -> bool:
+        """Deleta um usuário (desativa)"""
+        from src.models import User
+        
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return False
+            
+            # Não permite deletar o próprio usuário ou o único admin
+            if self.current_user and user.id == self.current_user['id']:
+                return False
+            
+            # Verifica se é o último admin
+            if user.role == 'admin':
+                admin_count = db.query(User).filter(
+                    User.role == 'admin',
+                    User.is_active == True
+                ).count()
+                if admin_count <= 1:
+                    return False
+            
+            # Desativar ao invés de deletar
+            user.is_active = False
+            user.updated_at = datetime.now()
+            db.commit()
+            
+            return True
+        except Exception as e:
+            print(f"Erro ao deletar usuário: {e}")
+            db.rollback()
+            return False
+    
+    def list_users(self, db) -> list:
+        """Lista todos os usuários"""
+        from src.models import User
+        
+        try:
+            users = db.query(User).filter(User.is_active == True).all()
+            return [
+                {
+                    'id': user.id,
+                    'username': user.username,
+                    'full_name': user.full_name,
+                    'email': user.email,
+                    'role': user.role,
+                    'is_active': user.is_active,
+                    'created_at': user.created_at
+                }
+                for user in users
+            ]
+        except Exception as e:
+            print(f"Erro ao listar usuários: {e}")
+            return []
